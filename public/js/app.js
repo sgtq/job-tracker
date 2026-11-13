@@ -117,20 +117,31 @@ async function loadJobs() {
 }
 
 async function handleSync() {
-    els.syncBtn.disabled = true;
     const gh = getGitHubConfig();
 
+    // Validate credentials before attempting to trigger GitHub Actions
+    if (!gh.owner || !gh.repo || !gh.token) {
+        alert(
+            "Please open 'Settings & Domains' and enter your GitHub Username, Repository Name, and Fine-grained PAT before syncing.",
+        );
+        els.settingsPanel.classList.remove("hidden"); // Automatically open settings
+        return;
+    }
+
+    els.syncBtn.disabled = true;
+
     try {
-        if (gh.owner && gh.repo && gh.token) {
-            els.syncBtn.textContent = "Triggering GitHub Action...";
-            await triggerGitHubWorkflow(gh, domains);
-            els.lastSynced.textContent = "Workflow triggered! Waiting ~25s for new data...";
-            await new Promise((r) => setTimeout(r, 25000));
-        }
+        els.syncBtn.textContent = "Triggering GitHub Action...";
+        await triggerGitHubWorkflow(gh, domains);
+        els.lastSynced.textContent = "Workflow triggered! Waiting ~25s for new data...";
+
+        // Wait for GitHub Actions to run and deploy the updated jobs.json
+        await new Promise((r) => setTimeout(r, 25000));
+
         els.syncBtn.textContent = "Refreshing...";
         await loadJobs();
     } catch (err) {
-        alert(err.message);
+        alert(`Sync failed: ${err.message}`);
     } finally {
         els.syncBtn.textContent = "↻ Sync Jobs";
         els.syncBtn.disabled = false;
