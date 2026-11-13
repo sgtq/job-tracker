@@ -1,5 +1,6 @@
+// public/js/api.js
 export async function fetchJobsData() {
-    const res = await fetch(`./jobs.json?t=${Date.now()}`);
+    const res = await fetch(`../jobs.json?t=${Date.now()}`);
     if (!res.ok) throw new Error("jobs.json not found");
     return res.json();
 }
