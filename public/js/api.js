@@ -1,7 +1,11 @@
 // public/js/api.js
+// public/js/api.js
 export async function fetchJobsData() {
-    const res = await fetch(`../jobs.json?t=${Date.now()}`);
-    if (!res.ok) throw new Error("jobs.json not found");
+    const url = new URL("jobs.json", window.location.href);
+    url.searchParams.set("t", Date.now()); // Forces browser & CDN to bypass cache
+
+    const res = await fetch(url.toString());
+    if (!res.ok) throw new Error(`jobs.json not found (Status: {res.status})`);
     return res.json();
 }
 
