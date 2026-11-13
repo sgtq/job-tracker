@@ -10,8 +10,6 @@ on:
         required: false
         default: ''
         type: string
-  push:
-    branches: [ main ]
 
 permissions:
   contents: write
