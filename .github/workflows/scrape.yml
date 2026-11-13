@@ -2,7 +2,7 @@ name: Scrape Jobs & Deploy Pages
 
 on:
   schedule:
-    - cron: '0 */6 * * *'
+    - cron: '0 0 */2 * *'
   workflow_dispatch:
     inputs:
       custom_targets:
