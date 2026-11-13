@@ -2,96 +2,71 @@
 <html lang="en">
 
 <head>
-	<meta charset="UTF-8" />
-	<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-	<title>Job Board Tracker</title>
-	<link rel="stylesheet" href="./css/styles.css" />
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>Job Board Dashboard</title>
+	<link rel="stylesheet" href="css/styles.css">
 </head>
 
 <body>
-	<div class="container">
-		<header>
-			<div>
-				<h1>Job Board Tracker</h1>
-				<p class="subtitle" id="lastSynced">Last synced: Never</p>
-			</div>
-			<div class="actions">
-				<button id="toggleSettingsBtn">⚙ Settings & Domains</button>
-				<button class="primary" id="syncBtn">↻ Sync Jobs</button>
+	<header class="app-header">
+		<div class="header-left">
+			<h1>Job Board</h1>
+			<span id="last-updated-badge" class="timestamp-badge">Last Updated: Never</span>
+		</div>
+		<div class="header-right">
+			<button id="sync-btn" class="btn-primary">↻ Sync Jobs</button>
+			<button id="settings-toggle-btn" class="btn-secondary">⚙ Settings</button>
+		</div>
+	</header>
 
-				<span id="last-updated-badge" class="timestamp-badge" title="Last time jobs.json was refreshed">
-					Last Updated: Never
-				</span>
-			</div>
-		</header>
-
-		<!-- Collapsible Settings & Domain Manager -->
-		<section class="panel hidden" id="settingsPanel">
-			<div class="panel-grid">
-				<div>
-					<h2>Target Career Domains</h2>
-					<p class="subtitle">Add endpoints to include when syncing.</p>
-					<form class="domain-form" id="domainForm">
-						<input type="text" id="companyInput" placeholder="Company (e.g. GDT)" required />
-						<input type="url" id="urlInput" placeholder="Workday API or HTML URL" required />
-						<select id="typeInput">
-							<option value="workday">Workday API</option>
-							<option value="html">Standard HTML</option>
-						</select>
-						<button type="submit" class="primary">Add</button>
-					</form>
-					<div class="domain-list" id="domainList"></div>
-				</div>
-
-				<div class="github-config">
-					<h2>GitHub Action Sync (Optional)</h2>
-					<p class="subtitle">Configure once to trigger remote scrapes directly from the Sync button.</p>
-					<div class="gh-inputs">
-						<input type="text" id="ghOwner" placeholder="GitHub Username (owner)" />
-						<input type="text" id="ghRepo" placeholder="Repository Name" />
-						<input type="password" id="ghToken" placeholder="Fine-grained PAT (Actions: Read/Write)" />
-						<button type="button" id="saveGhBtn">Save Credentials</button>
-					</div>
-					<p class="subtitle" id="ghStatus"></p>
-				</div>
-			</div>
-		</section>
-
-		<!-- Stats Bar -->
-		<section class="stats">
-			<div class="stat-card">
-				<div class="stat-value" id="totalCount">0</div>
-				<div class="stat-label">Total Jobs</div>
-			</div>
-			<div class="stat-card">
-				<div class="stat-value" id="newCount">0</div>
-				<div class="stat-label">New Listings</div>
-			</div>
-			<div class="stat-card">
-				<div class="stat-value" id="companyCount">0</div>
-				<div class="stat-label">Companies</div>
-			</div>
-		</section>
-
-		<!-- Filters -->
-		<section class="filters">
-			<input type="text" id="searchInput" placeholder="Filter by title or keyword..." />
-			<select id="companyFilter">
-				<option value="all">All Companies</option>
-			</select>
-			<label class="checkbox-label">
-				<input type="checkbox" id="onlyNewFilter" />
-				New only
-			</label>
-		</section>
-
-		<!-- Job Listings -->
-		<main class="job-list" id="jobList">
-			<div class="empty-state">Loading jobs...</div>
-		</main>
+	<!-- Settings Panel -->
+	<div id="settings-panel" class="settings-panel hidden">
+		<h2>GitHub Credentials</h2>
+		<p class="settings-desc">Required to trigger cloud sync via GitHub Actions API.</p>
+		<div class="form-group">
+			<label for="gh-owner">GitHub Username / Owner</label>
+			<input type="text" id="gh-owner" placeholder="e.g., username">
+		</div>
+		<div class="form-group">
+			<label for="gh-repo">Repository Name</label>
+			<input type="text" id="gh-repo" placeholder="e.g., job-scraper">
+		</div>
+		<div class="form-group">
+			<label for="gh-token">Fine-grained Personal Access Token (PAT)</label>
+			<input type="password" id="gh-token" placeholder="github_pat_...">
+		</div>
+		<div class="settings-actions">
+			<button id="save-settings-btn" class="btn-primary">Save Credentials</button>
+			<button id="close-settings-btn" class="btn-secondary">Close</button>
+		</div>
 	</div>
 
-	<script type="module" src="./js/app.js"></script>
+	<main class="main-content">
+		<div id="global-error-container"></div>
+
+		<!-- Filters Bar -->
+		<section class="filters-bar">
+			<input type="text" id="search-input" placeholder="Search title, company, or keyword...">
+
+			<div class="filter-group">
+				<select id="company-filter">
+					<option value="">All Companies</option>
+				</select>
+				<select id="location-filter">
+					<option value="">All Locations</option>
+				</select>
+			</div>
+
+			<span id="job-count" class="job-count">0 jobs found</span>
+		</section>
+
+		<div id="job-list-container" class="job-grid">
+			<!-- Job cards injected here -->
+		</div>
+	</main>
+
+	<script type="module" src="js/app.js"></script>
 </body>
 
 </html>

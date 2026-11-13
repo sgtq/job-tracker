@@ -9,6 +9,8 @@ const els = {
     saveSettingsBtn: document.getElementById("save-settings-btn"),
     closeSettingsBtn: document.getElementById("close-settings-btn"),
     searchInput: document.getElementById("search-input"),
+    companyFilter: document.getElementById("company-filter"),
+    locationFilter: document.getElementById("location-filter"),
     jobListContainer: document.getElementById("job-list-container"),
     jobCount: document.getElementById("job-count"),
     lastUpdatedBadge: document.getElementById("last-updated-badge"),
@@ -18,7 +20,6 @@ const els = {
     tokenInput: document.getElementById("gh-token"),
 };
 
-// Protected entry point to guard against third-party extension crashes (e.g., h1-check.js)
 document.addEventListener("DOMContentLoaded", () => {
     try {
         initApp();
@@ -38,7 +39,11 @@ function initEventListeners() {
     els.settingsToggleBtn.addEventListener("click", () => els.settingsPanel.classList.toggle("hidden"));
     els.closeSettingsBtn.addEventListener("click", () => els.settingsPanel.classList.add("hidden"));
     els.saveSettingsBtn.addEventListener("click", saveCredentials);
-    els.searchInput.addEventListener("input", (e) => filterAndRenderJobs(e.target.value));
+
+    // Filter triggers
+    els.searchInput.addEventListener("input", applyFilters);
+    els.companyFilter.addEventListener("change", applyFilters);
+    els.locationFilter.addEventListener("change", applyFilters);
 }
 
 function loadStoredCredentials() {
@@ -68,19 +73,46 @@ async function loadJobs() {
         els.errorContainer.innerHTML = "";
         const rawData = await fetchJobsData();
 
-        // Robustly handle whether jobs.json is a plain array or a wrapped object
         allJobs = Array.isArray(rawData) ? rawData : rawData.jobs || rawData.data || [];
+        console.log("Loaded jobs raw count:", allJobs.length);
 
+        populateFilterDropdowns(allJobs);
         renderJobs(allJobs);
         updateTimestamp();
     } catch (err) {
         console.error("Failed to load jobs:", err);
         els.errorContainer.innerHTML = `
       <div style="background:#fee2e2;color:#991b1b;padding:0.75rem;border-radius:6px;margin-bottom:1rem;">
-        Failed to load jobs.json. Make sure the scraper has run successfully and pushed data.
+        Failed to load jobs.json. Make sure the scraper has run successfully.
       </div>
     `;
     }
+}
+
+function populateFilterDropdowns(jobs) {
+    const companies = new Set();
+    const locations = new Set();
+
+    jobs.forEach((job) => {
+        const comp = job.company || job.companyName || job.organization;
+        const loc = job.location || job.loc || job.city;
+        if (comp) companies.add(comp);
+        if (loc) locations.add(loc);
+    });
+
+    els.companyFilter.innerHTML =
+        '<option value="">All Companies</option>' +
+        Array.from(companies)
+            .sort()
+            .map((c) => `<option value="${escapeHtml(c)}">${escapeHtml(c)}</option>`)
+            .join("");
+
+    els.locationFilter.innerHTML =
+        '<option value="">All Locations</option>' +
+        Array.from(locations)
+            .sort()
+            .map((l) => `<option value="${escapeHtml(l)}">${escapeHtml(l)}</option>`)
+            .join("");
 }
 
 function renderJobs(jobs) {
@@ -88,7 +120,7 @@ function renderJobs(jobs) {
     if (jobs.length === 0) {
         els.jobListContainer.innerHTML = `
       <p style="color:var(--text-muted);grid-column:1/-1;text-align:center;padding:3rem;">
-        No jobs available.
+        No matching jobs found.
       </p>
     `;
         return;
@@ -96,32 +128,48 @@ function renderJobs(jobs) {
 
     els.jobListContainer.innerHTML = jobs
         .map((job) => {
-            // Check if the job was added within the last 48 hours
+            // Flexible key fallback to prevent blank cards if scraper uses different property names
+            const title = job.title || job.positionTitle || job.name || job.position || "Untitled Position";
+            const company = job.company || job.companyName || job.organization || "Unknown Company";
+            const location = job.location || job.loc || job.city || "Remote";
+            const url = job.url || job.link || job.applyUrl || "#";
+
             const isRecent = job.dateAdded && Date.now() - new Date(job.dateAdded).getTime() < 48 * 60 * 60 * 1000;
+
             return `
       <div class="job-card">
         <div>
           <h3>
-            ${escapeHtml(job.title || job.positionTitle || "Untitled")} 
+            ${escapeHtml(title)} 
             ${isRecent ? '<span class="badge-new">NEW</span>' : ""}
           </h3>
-          <p class="job-meta">${escapeHtml(job.company || "Unknown")} &bull; ${escapeHtml(job.location || "Remote")}</p>
+          <p class="job-meta">${escapeHtml(company)} &bull; ${escapeHtml(location)}</p>
         </div>
-        <a href="${job.url || "#"}" target="_blank" rel="noopener" class="job-link">View Position &rarr;</a>
+        <a href="${escapeHtml(url)}" target="_blank" rel="noopener" class="job-link">View Position &rarr;</a>
       </div>
     `;
         })
         .join("");
 }
 
-function filterAndRenderJobs(query) {
-    const q = query.toLowerCase();
-    const filtered = allJobs.filter(
-        (j) =>
-            (j.title || j.positionTitle || "").toLowerCase().includes(q) ||
-            (j.company || "").toLowerCase().includes(q) ||
-            (j.location || "").toLowerCase().includes(q),
-    );
+function applyFilters() {
+    const query = els.searchInput.value.toLowerCase();
+    const selectedCompany = els.companyFilter.value;
+    const selectedLocation = els.locationFilter.value;
+
+    const filtered = allJobs.filter((job) => {
+        const title = (job.title || job.positionTitle || job.name || job.position || "").toLowerCase();
+        const company = job.company || job.companyName || job.organization || "";
+        const location = job.location || job.loc || job.city || "";
+
+        const matchesSearch =
+            title.includes(query) || company.toLowerCase().includes(query) || location.toLowerCase().includes(query);
+        const matchesCompany = !selectedCompany || company === selectedCompany;
+        const matchesLocation = !selectedLocation || location === selectedLocation;
+
+        return matchesSearch && matchesCompany && matchesLocation;
+    });
+
     renderJobs(filtered);
 }
 
@@ -156,7 +204,7 @@ async function handleSync() {
 }
 
 function escapeHtml(str) {
-    return String(str).replace(
+    return String(str || "").replace(
         /[&<>'"]/g,
         (tag) =>
             ({
