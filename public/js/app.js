@@ -1,153 +1,152 @@
-import { getDomains, saveDomains, getGitHubConfig, saveGitHubConfig } from "./storage.js";
 import { fetchJobsData, triggerGitHubWorkflow } from "./api.js";
 
 let allJobs = [];
-let domains = getDomains();
 
 const els = {
-    jobList: document.getElementById("jobList"),
-    searchInput: document.getElementById("searchInput"),
-    companyFilter: document.getElementById("companyFilter"),
-    onlyNewFilter: document.getElementById("onlyNewFilter"),
-    syncBtn: document.getElementById("syncBtn"),
-    lastSynced: document.getElementById("lastSynced"),
-    toggleSettingsBtn: document.getElementById("toggleSettingsBtn"),
-    settingsPanel: document.getElementById("settingsPanel"),
-    domainForm: document.getElementById("domainForm"),
-    domainList: document.getElementById("domainList"),
-    ghOwner: document.getElementById("ghOwner"),
-    ghRepo: document.getElementById("ghRepo"),
-    ghToken: document.getElementById("ghToken"),
-    saveGhBtn: document.getElementById("saveGhBtn"),
-    ghStatus: document.getElementById("ghStatus"),
+    syncBtn: document.getElementById("sync-btn"),
+    settingsToggleBtn: document.getElementById("settings-toggle-btn"),
+    settingsPanel: document.getElementById("settings-panel"),
+    saveSettingsBtn: document.getElementById("save-settings-btn"),
+    closeSettingsBtn: document.getElementById("close-settings-btn"),
+    searchInput: document.getElementById("search-input"),
+    jobListContainer: document.getElementById("job-list-container"),
+    jobCount: document.getElementById("job-count"),
+    lastUpdatedBadge: document.getElementById("last-updated-badge"),
+    errorContainer: document.getElementById("global-error-container"),
+    ownerInput: document.getElementById("gh-owner"),
+    repoInput: document.getElementById("gh-repo"),
+    tokenInput: document.getElementById("gh-token"),
 };
 
-function initSettings() {
-    const gh = getGitHubConfig();
-    els.ghOwner.value = gh.owner;
-    els.ghRepo.value = gh.repo;
-    els.ghToken.value = gh.token;
-}
-
-function renderDomains() {
-    els.domainList.innerHTML = domains
-        .map(
-            (d, idx) => `
-    <span class="domain-chip">
-      <strong>${d.company}</strong> (${d.type})
-      <button type="button" data-index="${idx}" title="Remove">×</button>
-    </span>
-  `,
-        )
-        .join("");
-
-    els.domainList.querySelectorAll("button").forEach((btn) => {
-        btn.addEventListener("click", () => {
-            domains.splice(Number(btn.dataset.index), 1);
-            saveDomains(domains);
-            renderDomains();
-        });
-    });
-}
-
-function updateStats() {
-    document.getElementById("totalCount").textContent = allJobs.length;
-    document.getElementById("newCount").textContent = allJobs.filter((j) => j.is_new).length;
-    document.getElementById("companyCount").textContent = new Set(allJobs.map((j) => j.company)).size;
-}
-
-function populateCompanyDropdown() {
-    const current = els.companyFilter.value;
-    const companies = [...new Set(allJobs.map((j) => j.company))].sort();
-    els.companyFilter.innerHTML =
-        `<option value="all">All Companies</option>` +
-        companies.map((c) => `<option value="${c}">${c}</option>`).join("");
-    if (companies.includes(current)) els.companyFilter.value = current;
-}
-
-function renderJobs() {
-    const query = els.searchInput.value.toLowerCase().trim();
-    const company = els.companyFilter.value;
-    const onlyNew = els.onlyNewFilter.checked;
-
-    const filtered = allJobs.filter((job) => {
-        const matchesQuery = job.title.toLowerCase().includes(query) || job.company.toLowerCase().includes(query);
-        const matchesCompany = company === "all" || job.company === company;
-        const matchesNew = !onlyNew || job.is_new;
-        return matchesQuery && matchesCompany && matchesNew;
-    });
-
-    if (filtered.length === 0) {
-        els.jobList.innerHTML = `<div class="empty-state">No jobs match your current filters.</div>`;
-        return;
+// Protected entry point to guard against third-party extension crashes (e.g., h1-check.js)
+document.addEventListener("DOMContentLoaded", () => {
+    try {
+        initApp();
+    } catch (err) {
+        console.error("Critical initialization failure:", err);
     }
+});
 
-    els.jobList.innerHTML = filtered
-        .map(
-            (job) => `
-    <article class="job-card">
-      <div>
-        <div class="job-meta">
-          <span class="company-tag">${job.company}</span>
-          <span>•</span>
-          <span>Found ${job.date_found}</span>
-          ${job.is_new ? '<span class="badge-new">NEW</span>' : ""}
-        </div>
-        <a href="${job.link}" target="_blank" rel="noopener noreferrer" class="job-title">${job.title}</a>
-      </div>
-      <a href="${job.link}" target="_blank" rel="noopener noreferrer">
-        <button type="button">Apply ↗</button>
-      </a>
-    </article>
-  `,
-        )
-        .join("");
+async function initApp() {
+    loadStoredCredentials();
+    initEventListeners();
+    await loadJobs();
+}
+
+function initEventListeners() {
+    els.syncBtn.addEventListener("click", handleSync);
+    els.settingsToggleBtn.addEventListener("click", () => els.settingsPanel.classList.toggle("hidden"));
+    els.closeSettingsBtn.addEventListener("click", () => els.settingsPanel.classList.add("hidden"));
+    els.saveSettingsBtn.addEventListener("click", saveCredentials);
+    els.searchInput.addEventListener("input", (e) => filterAndRenderJobs(e.target.value));
+}
+
+function loadStoredCredentials() {
+    els.ownerInput.value = localStorage.getItem("gh_owner") || "";
+    els.repoInput.value = localStorage.getItem("gh_repo") || "";
+    els.tokenInput.value = localStorage.getItem("gh_token") || "";
+}
+
+function saveCredentials() {
+    localStorage.setItem("gh_owner", els.ownerInput.value.trim());
+    localStorage.setItem("gh_repo", els.repoInput.value.trim());
+    localStorage.setItem("gh_token", els.tokenInput.value.trim());
+    els.settingsPanel.classList.add("hidden");
+    alert("GitHub credentials saved successfully!");
+}
+
+function getGitHubConfig() {
+    return {
+        owner: localStorage.getItem("gh_owner"),
+        repo: localStorage.getItem("gh_repo"),
+        token: localStorage.getItem("gh_token"),
+    };
 }
 
 async function loadJobs() {
     try {
-        // Fetch the jobs data using your cache-busting fetch function
-        const data = await fetchJobsData();
+        els.errorContainer.innerHTML = "";
+        const rawData = await fetchJobsData();
 
-        // Render your jobs list and stats here...
-        renderJobs(data);
+        // Robustly handle whether jobs.json is a plain array or a wrapped object
+        allJobs = Array.isArray(rawData) ? rawData : rawData.jobs || rawData.data || [];
 
-        // Update the timestamp badge
-        const badge = document.getElementById("last-updated-badge");
-        if (badge) {
-            // If your scraper outputs a timestamp field, use it. Otherwise, use current time:
-            const now = new Date();
-            badge.textContent = `Last Updated: ${now.toLocaleDateString()} ${now.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`;
-        }
+        renderJobs(allJobs);
+        updateTimestamp();
     } catch (err) {
         console.error("Failed to load jobs:", err);
+        els.errorContainer.innerHTML = `
+      <div style="background:#fee2e2;color:#991b1b;padding:0.75rem;border-radius:6px;margin-bottom:1rem;">
+        Failed to load jobs.json. Make sure the scraper has run successfully and pushed data.
+      </div>
+    `;
     }
+}
+
+function renderJobs(jobs) {
+    els.jobCount.textContent = `${jobs.length} jobs found`;
+    if (jobs.length === 0) {
+        els.jobListContainer.innerHTML = `
+      <p style="color:var(--text-muted);grid-column:1/-1;text-align:center;padding:3rem;">
+        No jobs available.
+      </p>
+    `;
+        return;
+    }
+
+    els.jobListContainer.innerHTML = jobs
+        .map((job) => {
+            // Check if the job was added within the last 48 hours
+            const isRecent = job.dateAdded && Date.now() - new Date(job.dateAdded).getTime() < 48 * 60 * 60 * 1000;
+            return `
+      <div class="job-card">
+        <div>
+          <h3>
+            ${escapeHtml(job.title || job.positionTitle || "Untitled")} 
+            ${isRecent ? '<span class="badge-new">NEW</span>' : ""}
+          </h3>
+          <p class="job-meta">${escapeHtml(job.company || "Unknown")} &bull; ${escapeHtml(job.location || "Remote")}</p>
+        </div>
+        <a href="${job.url || "#"}" target="_blank" rel="noopener" class="job-link">View Position &rarr;</a>
+      </div>
+    `;
+        })
+        .join("");
+}
+
+function filterAndRenderJobs(query) {
+    const q = query.toLowerCase();
+    const filtered = allJobs.filter(
+        (j) =>
+            (j.title || j.positionTitle || "").toLowerCase().includes(q) ||
+            (j.company || "").toLowerCase().includes(q) ||
+            (j.location || "").toLowerCase().includes(q),
+    );
+    renderJobs(filtered);
+}
+
+function updateTimestamp() {
+    const now = new Date();
+    els.lastUpdatedBadge.textContent = `Last Updated: ${now.toLocaleDateString()} ${now.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`;
 }
 
 async function handleSync() {
     const gh = getGitHubConfig();
-
-    // Validate credentials before attempting to trigger GitHub Actions
     if (!gh.owner || !gh.repo || !gh.token) {
         alert(
-            "Please open 'Settings & Domains' and enter your GitHub Username, Repository Name, and Fine-grained PAT before syncing.",
+            "Please open 'Settings' and enter your GitHub Username, Repository Name, and Fine-grained PAT before syncing.",
         );
-        els.settingsPanel.classList.remove("hidden"); // Automatically open settings
+        els.settingsPanel.classList.remove("hidden");
         return;
     }
 
     els.syncBtn.disabled = true;
-
     try {
-        els.syncBtn.textContent = "Triggering GitHub Action...";
-        await triggerGitHubWorkflow(gh, domains);
-        els.lastSynced.textContent = "Workflow triggered! Waiting ~25s for new data...";
-
-        // Wait for GitHub Actions to run and deploy the updated jobs.json
-        await new Promise((r) => setTimeout(r, 25000));
-
-        els.syncBtn.textContent = "Refreshing...";
-        await loadJobs();
+        els.syncBtn.textContent = "Triggering Action...";
+        await triggerGitHubWorkflow(gh, []);
+        alert(
+            "Workflow successfully triggered on GitHub! Please wait about 60 seconds for the action to scrape and GitHub Pages to redeploy, then reload the page.",
+        );
     } catch (err) {
         alert(`Sync failed: ${err.message}`);
     } finally {
@@ -156,38 +155,16 @@ async function handleSync() {
     }
 }
 
-// Event Listeners
-els.toggleSettingsBtn.addEventListener("click", () => els.settingsPanel.classList.toggle("hidden"));
-els.syncBtn.addEventListener("click", handleSync);
-els.searchInput.addEventListener("input", renderJobs);
-els.companyFilter.addEventListener("change", renderJobs);
-els.onlyNewFilter.addEventListener("change", renderJobs);
-
-els.domainForm.addEventListener("submit", (e) => {
-    e.preventDefault();
-    const company = document.getElementById("companyInput").value.trim();
-    const rawUrl = document.getElementById("urlInput").value.trim();
-    const type = document.getElementById("typeInput").value;
-
-    const entry = type === "workday" ? { company, type, apiUrl: rawUrl } : { company, type, url: rawUrl };
-
-    domains.push(entry);
-    saveDomains(domains);
-    renderDomains();
-    els.domainForm.reset();
-});
-
-els.saveGhBtn.addEventListener("click", () => {
-    saveGitHubConfig({
-        owner: els.ghOwner.value.trim(),
-        repo: els.ghRepo.value.trim(),
-        token: els.ghToken.value.trim(),
-    });
-    els.ghStatus.textContent = "Credentials saved in browser storage.";
-    setTimeout(() => (els.ghStatus.textContent = ""), 3000);
-});
-
-// Boot
-initSettings();
-renderDomains();
-loadJobs();
+function escapeHtml(str) {
+    return String(str).replace(
+        /[&<>'"]/g,
+        (tag) =>
+            ({
+                "&": "&amp;",
+                "<": "&lt;",
+                ">": "&gt;",
+                "'": "&#39;",
+                '"': "&quot;",
+            })[tag] || tag,
+    );
+}
