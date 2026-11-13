@@ -20,7 +20,7 @@
 		</div>
 	</header>
 
-	<!-- Settings Panel / Drawer -->
+	<!-- Settings Panel -->
 	<div id="settings-panel" class="settings-panel hidden">
 		<h2>GitHub Credentials</h2>
 		<p class="settings-desc">Required to trigger cloud sync via GitHub Actions API.</p>
@@ -30,7 +30,7 @@
 		</div>
 		<div class="form-group">
 			<label for="gh-repo">Repository Name</label>
-			<input type="text" id="gh-repo" placeholder="e.g., job-scraper">
+			<input type="text" id="gh-repo" placeholder="e.g., job-tracker">
 		</div>
 		<div class="form-group">
 			<label for="gh-token">Fine-grained Personal Access Token (PAT)</label>
@@ -61,8 +61,9 @@
 			<span id="job-count" class="job-count">0 jobs found</span>
 		</section>
 
-		<div id="job-list-container" class="job-grid">
-			<!-- Job cards injected here -->
+		<!-- Vertical List Container -->
+		<div id="job-list-container" class="job-list">
+			<!-- Job items injected here -->
 		</div>
 	</main>
 

@@ -104,11 +104,7 @@ async function loadJobs() {
         if (els.errorContainer) els.errorContainer.innerHTML = "";
         const rawData = await fetchJobsData();
 
-        // Debug what jobs.json actually returns in your browser
-        console.log("Fetched rawData from jobs.json:", rawData);
-
         allJobs = Array.isArray(rawData) ? rawData : rawData.jobs || rawData.data || rawData.results || [];
-        console.log("Processed allJobs count:", allJobs.length);
 
         populateFilterDropdowns(allJobs);
         renderJobs(allJobs);
@@ -159,7 +155,7 @@ function renderJobs(jobs) {
 
     if (jobs.length === 0) {
         els.jobListContainer.innerHTML = `
-      <p style="color:var(--text-muted);grid-column:1/-1;text-align:center;padding:3rem;">
+      <p style="color:var(--text-muted);text-align:center;padding:3rem;">
         No matching jobs found.
       </p>
     `;
@@ -176,8 +172,8 @@ function renderJobs(jobs) {
             const isRecent = job.dateAdded && Date.now() - new Date(job.dateAdded).getTime() < 48 * 60 * 60 * 1000;
 
             return `
-      <div class="job-card">
-        <div>
+      <div class="job-item">
+        <div class="job-info">
           <h3>
             ${escapeHtml(title)} 
             ${isRecent ? '<span class="badge-new">NEW</span>' : ""}
