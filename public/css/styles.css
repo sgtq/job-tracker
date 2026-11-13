@@ -199,3 +199,13 @@ input, select {
   border: 1px dashed var(--border);
   border-radius: 8px;
 }
+
+.timestamp-badge {
+	font-size: 0.85rem;
+	color: var(--text-muted, #64748b);
+	background: var(--bg-surface, #f1f5f9);
+	padding: 6px 12px;
+	border-radius: 6px;
+	border: 1px solid var(--border-color, #e2e8f0);
+	white-space: nowrap;
+}

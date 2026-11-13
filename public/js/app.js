@@ -106,13 +106,21 @@ function renderJobs() {
 
 async function loadJobs() {
     try {
-        allJobs = await fetchJobsData();
-        populateCompanyDropdown();
-        updateStats();
-        renderJobs();
-        els.lastSynced.textContent = `Last synced: ${new Date().toLocaleTimeString()}`;
-    } catch {
-        els.jobList.innerHTML = `<div class="empty-state">No jobs data found yet. Run <code>npm start</code> or click Sync Jobs.</div>`;
+        // Fetch the jobs data using your cache-busting fetch function
+        const data = await fetchJobsData();
+
+        // Render your jobs list and stats here...
+        renderJobs(data);
+
+        // Update the timestamp badge
+        const badge = document.getElementById("last-updated-badge");
+        if (badge) {
+            // If your scraper outputs a timestamp field, use it. Otherwise, use current time:
+            const now = new Date();
+            badge.textContent = `Last Updated: ${now.toLocaleDateString()} ${now.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`;
+        }
+    } catch (err) {
+        console.error("Failed to load jobs:", err);
     }
 }
 
