@@ -104,8 +104,11 @@ async function loadJobs() {
         if (els.errorContainer) els.errorContainer.innerHTML = "";
         const rawData = await fetchJobsData();
 
-        allJobs = Array.isArray(rawData) ? rawData : rawData.jobs || rawData.data || [];
-        console.log("Loaded jobs raw count:", allJobs.length);
+        // Debug what jobs.json actually returns in your browser
+        console.log("Fetched rawData from jobs.json:", rawData);
+
+        allJobs = Array.isArray(rawData) ? rawData : rawData.jobs || rawData.data || rawData.results || [];
+        console.log("Processed allJobs count:", allJobs.length);
 
         populateFilterDropdowns(allJobs);
         renderJobs(allJobs);
