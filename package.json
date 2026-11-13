@@ -7,9 +7,9 @@
 	"start": "node src/scraper.js"
   },
   "keywords": [],
-  "author": "",
+  "author": "Quittner",
   "license": "ISC",
-  "description": "",
+  "description": "Custom job board scraper and viewer",
   "dependencies": {
     "axios": "^1.21.1",
     "cheerio": "^1.2.0"

@@ -1,47 +1,93 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Job Openings Tracker</title>
-  <style>
-    body { font-family: system-ui, -apple-system, sans-serif; max-width: 800px; margin: 40px auto; padding: 0 20px; background: #f9fafb; color: #111; }
-    h1 { font-size: 1.5rem; margin-bottom: 24px; }
-    .job-card { background: #fff; border: 1px solid #e5e7eb; padding: 16px; margin-bottom: 12px; border-radius: 8px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 1px 2px rgba(0,0,0,0.05); }
-    .job-card.new { border-left: 4px solid #10b981; }
-    .badge { background: #d1fae5; color: #065f46; font-size: 0.75rem; font-weight: bold; padding: 2px 8px; border-radius: 999px; margin-left: 8px; }
-    .meta { font-size: 0.85rem; color: #6b7280; margin-top: 4px; }
-    a { text-decoration: none; color: #2563eb; font-weight: 600; }
-    a:hover { text-decoration: underline; }
-  </style>
-</head>
-<body>
-  <h1>Tracked Job Boards</h1>
-  <div id="job-list">Loading jobs...</div>
 
-  <script>
-    // Fetch from the data directory relative to the site root
-    fetch('./jobs.json?t=' + new Date().getTime())
-      .then(res => res.json())
-      .then(jobs => {
-        const container = document.getElementById('job-list');
-        if (!jobs.length) {
-          container.innerHTML = '<p>No jobs tracked yet.</p>';
-          return;
-        }
-        container.innerHTML = jobs.map(job => `
-          <div class="job-card ${job.is_new ? 'new' : ''}">
-            <div>
-              <a href="${job.link}" target="_blank">${job.title}</a>
-              ${job.is_new ? '<span class="badge">NEW</span>' : ''}
-              <div class="meta">${job.company} • Discovered on ${job.date_found}</div>
-            </div>
-          </div>
-        `).join('');
-      })
-      .catch(() => {
-        document.getElementById('job-list').innerHTML = '<p>Unable to load jobs.json. Run the scraper locally first.</p>';
-      });
-  </script>
+<head>
+	<meta charset="UTF-8" />
+	<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+	<title>Job Board Tracker</title>
+	<link rel="stylesheet" href="./css/styles.css" />
+</head>
+
+<body>
+	<div class="container">
+		<header>
+			<div>
+				<h1>Job Board Tracker</h1>
+				<p class="subtitle" id="lastSynced">Last synced: Never</p>
+			</div>
+			<div class="actions">
+				<button id="toggleSettingsBtn">⚙ Settings & Domains</button>
+				<button class="primary" id="syncBtn">↻ Sync Jobs</button>
+			</div>
+		</header>
+
+		<!-- Collapsible Settings & Domain Manager -->
+		<section class="panel hidden" id="settingsPanel">
+			<div class="panel-grid">
+				<div>
+					<h2>Target Career Domains</h2>
+					<p class="subtitle">Add endpoints to include when syncing.</p>
+					<form class="domain-form" id="domainForm">
+						<input type="text" id="companyInput" placeholder="Company (e.g. GDT)" required />
+						<input type="url" id="urlInput" placeholder="Workday API or HTML URL" required />
+						<select id="typeInput">
+							<option value="workday">Workday API</option>
+							<option value="html">Standard HTML</option>
+						</select>
+						<button type="submit" class="primary">Add</button>
+					</form>
+					<div class="domain-list" id="domainList"></div>
+				</div>
+
+				<div class="github-config">
+					<h2>GitHub Action Sync (Optional)</h2>
+					<p class="subtitle">Configure once to trigger remote scrapes directly from the Sync button.</p>
+					<div class="gh-inputs">
+						<input type="text" id="ghOwner" placeholder="GitHub Username (owner)" />
+						<input type="text" id="ghRepo" placeholder="Repository Name" />
+						<input type="password" id="ghToken" placeholder="Fine-grained PAT (Actions: Read/Write)" />
+						<button type="button" id="saveGhBtn">Save Credentials</button>
+					</div>
+					<p class="subtitle" id="ghStatus"></p>
+				</div>
+			</div>
+		</section>
+
+		<!-- Stats Bar -->
+		<section class="stats">
+			<div class="stat-card">
+				<div class="stat-value" id="totalCount">0</div>
+				<div class="stat-label">Total Jobs</div>
+			</div>
+			<div class="stat-card">
+				<div class="stat-value" id="newCount">0</div>
+				<div class="stat-label">New Listings</div>
+			</div>
+			<div class="stat-card">
+				<div class="stat-value" id="companyCount">0</div>
+				<div class="stat-label">Companies</div>
+			</div>
+		</section>
+
+		<!-- Filters -->
+		<section class="filters">
+			<input type="text" id="searchInput" placeholder="Filter by title or keyword..." />
+			<select id="companyFilter">
+				<option value="all">All Companies</option>
+			</select>
+			<label class="checkbox-label">
+				<input type="checkbox" id="onlyNewFilter" />
+				New only
+			</label>
+		</section>
+
+		<!-- Job Listings -->
+		<main class="job-list" id="jobList">
+			<div class="empty-state">Loading jobs...</div>
+		</main>
+	</div>
+
+	<script type="module" src="./js/app.js"></script>
 </body>
+
 </html>
