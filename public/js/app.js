@@ -3,21 +3,51 @@ import { fetchJobsData, triggerGitHubWorkflow } from "./api.js";
 let allJobs = [];
 
 const els = {
-    syncBtn: document.getElementById("sync-btn"),
-    settingsToggleBtn: document.getElementById("settings-toggle-btn"),
-    settingsPanel: document.getElementById("settings-panel"),
-    saveSettingsBtn: document.getElementById("save-settings-btn"),
-    closeSettingsBtn: document.getElementById("close-settings-btn"),
-    searchInput: document.getElementById("search-input"),
-    companyFilter: document.getElementById("company-filter"),
-    locationFilter: document.getElementById("location-filter"),
-    jobListContainer: document.getElementById("job-list-container"),
-    jobCount: document.getElementById("job-count"),
-    lastUpdatedBadge: document.getElementById("last-updated-badge"),
-    errorContainer: document.getElementById("global-error-container"),
-    ownerInput: document.getElementById("gh-owner"),
-    repoInput: document.getElementById("gh-repo"),
-    tokenInput: document.getElementById("gh-token"),
+    get syncBtn() {
+        return document.getElementById("sync-btn");
+    },
+    get settingsToggleBtn() {
+        return document.getElementById("settings-toggle-btn");
+    },
+    get settingsPanel() {
+        return document.getElementById("settings-panel");
+    },
+    get saveSettingsBtn() {
+        return document.getElementById("save-settings-btn");
+    },
+    get closeSettingsBtn() {
+        return document.getElementById("close-settings-btn");
+    },
+    get searchInput() {
+        return document.getElementById("search-input");
+    },
+    get companyFilter() {
+        return document.getElementById("company-filter");
+    },
+    get locationFilter() {
+        return document.getElementById("location-filter");
+    },
+    get jobListContainer() {
+        return document.getElementById("job-list-container");
+    },
+    get jobCount() {
+        return document.getElementById("job-count");
+    },
+    get lastUpdatedBadge() {
+        return document.getElementById("last-updated-badge");
+    },
+    get errorContainer() {
+        return document.getElementById("global-error-container");
+    },
+    get ownerInput() {
+        return document.getElementById("gh-owner");
+    },
+    get repoInput() {
+        return document.getElementById("gh-repo");
+    },
+    get tokenInput() {
+        return document.getElementById("gh-token");
+    },
 };
 
 document.addEventListener("DOMContentLoaded", () => {
@@ -35,28 +65,29 @@ async function initApp() {
 }
 
 function initEventListeners() {
-    els.syncBtn.addEventListener("click", handleSync);
-    els.settingsToggleBtn.addEventListener("click", () => els.settingsPanel.classList.toggle("hidden"));
-    els.closeSettingsBtn.addEventListener("click", () => els.settingsPanel.classList.add("hidden"));
-    els.saveSettingsBtn.addEventListener("click", saveCredentials);
+    if (els.syncBtn) els.syncBtn.addEventListener("click", handleSync);
+    if (els.settingsToggleBtn)
+        els.settingsToggleBtn.addEventListener("click", () => els.settingsPanel?.classList.toggle("hidden"));
+    if (els.closeSettingsBtn)
+        els.closeSettingsBtn.addEventListener("click", () => els.settingsPanel?.classList.add("hidden"));
+    if (els.saveSettingsBtn) els.saveSettingsBtn.addEventListener("click", saveCredentials);
 
-    // Filter triggers
-    els.searchInput.addEventListener("input", applyFilters);
-    els.companyFilter.addEventListener("change", applyFilters);
-    els.locationFilter.addEventListener("change", applyFilters);
+    if (els.searchInput) els.searchInput.addEventListener("input", applyFilters);
+    if (els.companyFilter) els.companyFilter.addEventListener("change", applyFilters);
+    if (els.locationFilter) els.locationFilter.addEventListener("change", applyFilters);
 }
 
 function loadStoredCredentials() {
-    els.ownerInput.value = localStorage.getItem("gh_owner") || "";
-    els.repoInput.value = localStorage.getItem("gh_repo") || "";
-    els.tokenInput.value = localStorage.getItem("gh_token") || "";
+    if (els.ownerInput) els.ownerInput.value = localStorage.getItem("gh_owner") || "";
+    if (els.repoInput) els.repoInput.value = localStorage.getItem("gh_repo") || "";
+    if (els.tokenInput) els.tokenInput.value = localStorage.getItem("gh_token") || "";
 }
 
 function saveCredentials() {
-    localStorage.setItem("gh_owner", els.ownerInput.value.trim());
-    localStorage.setItem("gh_repo", els.repoInput.value.trim());
-    localStorage.setItem("gh_token", els.tokenInput.value.trim());
-    els.settingsPanel.classList.add("hidden");
+    if (els.ownerInput) localStorage.setItem("gh_owner", els.ownerInput.value.trim());
+    if (els.repoInput) localStorage.setItem("gh_repo", els.repoInput.value.trim());
+    if (els.tokenInput) localStorage.setItem("gh_token", els.tokenInput.value.trim());
+    if (els.settingsPanel) els.settingsPanel.classList.add("hidden");
     alert("GitHub credentials saved successfully!");
 }
 
@@ -70,7 +101,7 @@ function getGitHubConfig() {
 
 async function loadJobs() {
     try {
-        els.errorContainer.innerHTML = "";
+        if (els.errorContainer) els.errorContainer.innerHTML = "";
         const rawData = await fetchJobsData();
 
         allJobs = Array.isArray(rawData) ? rawData : rawData.jobs || rawData.data || [];
@@ -81,15 +112,19 @@ async function loadJobs() {
         updateTimestamp();
     } catch (err) {
         console.error("Failed to load jobs:", err);
-        els.errorContainer.innerHTML = `
-      <div style="background:#fee2e2;color:#991b1b;padding:0.75rem;border-radius:6px;margin-bottom:1rem;">
-        Failed to load jobs.json. Make sure the scraper has run successfully.
-      </div>
-    `;
+        if (els.errorContainer) {
+            els.errorContainer.innerHTML = `
+        <div style="background:#fee2e2;color:#991b1b;padding:0.75rem;border-radius:6px;margin-bottom:1rem;">
+          Failed to load jobs.json. Make sure the scraper has run successfully.
+        </div>
+      `;
+        }
     }
 }
 
 function populateFilterDropdowns(jobs) {
+    if (!els.companyFilter || !els.locationFilter) return;
+
     const companies = new Set();
     const locations = new Set();
 
@@ -116,7 +151,9 @@ function populateFilterDropdowns(jobs) {
 }
 
 function renderJobs(jobs) {
-    els.jobCount.textContent = `${jobs.length} jobs found`;
+    if (els.jobCount) els.jobCount.textContent = `${jobs.length} jobs found`;
+    if (!els.jobListContainer) return;
+
     if (jobs.length === 0) {
         els.jobListContainer.innerHTML = `
       <p style="color:var(--text-muted);grid-column:1/-1;text-align:center;padding:3rem;">
@@ -128,7 +165,6 @@ function renderJobs(jobs) {
 
     els.jobListContainer.innerHTML = jobs
         .map((job) => {
-            // Flexible key fallback to prevent blank cards if scraper uses different property names
             const title = job.title || job.positionTitle || job.name || job.position || "Untitled Position";
             const company = job.company || job.companyName || job.organization || "Unknown Company";
             const location = job.location || job.loc || job.city || "Remote";
@@ -153,9 +189,9 @@ function renderJobs(jobs) {
 }
 
 function applyFilters() {
-    const query = els.searchInput.value.toLowerCase();
-    const selectedCompany = els.companyFilter.value;
-    const selectedLocation = els.locationFilter.value;
+    const query = els.searchInput ? els.searchInput.value.toLowerCase() : "";
+    const selectedCompany = els.companyFilter ? els.companyFilter.value : "";
+    const selectedLocation = els.locationFilter ? els.locationFilter.value : "";
 
     const filtered = allJobs.filter((job) => {
         const title = (job.title || job.positionTitle || job.name || job.position || "").toLowerCase();
@@ -174,6 +210,7 @@ function applyFilters() {
 }
 
 function updateTimestamp() {
+    if (!els.lastUpdatedBadge) return;
     const now = new Date();
     els.lastUpdatedBadge.textContent = `Last Updated: ${now.toLocaleDateString()} ${now.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`;
 }
@@ -184,13 +221,13 @@ async function handleSync() {
         alert(
             "Please open 'Settings' and enter your GitHub Username, Repository Name, and Fine-grained PAT before syncing.",
         );
-        els.settingsPanel.classList.remove("hidden");
+        els.settingsPanel?.classList.remove("hidden");
         return;
     }
 
-    els.syncBtn.disabled = true;
+    if (els.syncBtn) els.syncBtn.disabled = true;
     try {
-        els.syncBtn.textContent = "Triggering Action...";
+        if (els.syncBtn) els.syncBtn.textContent = "Triggering Action...";
         await triggerGitHubWorkflow(gh, []);
         alert(
             "Workflow successfully triggered on GitHub! Please wait about 60 seconds for the action to scrape and GitHub Pages to redeploy, then reload the page.",
@@ -198,8 +235,10 @@ async function handleSync() {
     } catch (err) {
         alert(`Sync failed: ${err.message}`);
     } finally {
-        els.syncBtn.textContent = "↻ Sync Jobs";
-        els.syncBtn.disabled = false;
+        if (els.syncBtn) {
+            els.syncBtn.textContent = "↻ Sync Jobs";
+            els.syncBtn.disabled = false;
+        }
     }
 }
 
