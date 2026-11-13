@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Job Openings Tracker</title>
+  <style>
+    body { font-family: system-ui, -apple-system, sans-serif; max-width: 800px; margin: 40px auto; padding: 0 20px; background: #f9fafb; color: #111; }
+    h1 { font-size: 1.5rem; margin-bottom: 24px; }
+    .job-card { background: #fff; border: 1px solid #e5e7eb; padding: 16px; margin-bottom: 12px; border-radius: 8px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 1px 2px rgba(0,0,0,0.05); }
+    .job-card.new { border-left: 4px solid #10b981; }
+    .badge { background: #d1fae5; color: #065f46; font-size: 0.75rem; font-weight: bold; padding: 2px 8px; border-radius: 999px; margin-left: 8px; }
+    .meta { font-size: 0.85rem; color: #6b7280; margin-top: 4px; }
+    a { text-decoration: none; color: #2563eb; font-weight: 600; }
+    a:hover { text-decoration: underline; }
+  </style>
+</head>
+<body>
+  <h1>Tracked Job Boards</h1>
+  <div id="job-list">Loading jobs...</div>
+
+  <script>
+    // Fetch from the data directory relative to the site root
+    fetch('./jobs.json?t=' + new Date().getTime())
+      .then(res => res.json())
+      .then(jobs => {
+        const container = document.getElementById('job-list');
+        if (!jobs.length) {
+          container.innerHTML = '<p>No jobs tracked yet.</p>';
+          return;
+        }
+        container.innerHTML = jobs.map(job => `
+          <div class="job-card ${job.is_new ? 'new' : ''}">
+            <div>
+              <a href="${job.link}" target="_blank">${job.title}</a>
+              ${job.is_new ? '<span class="badge">NEW</span>' : ''}
+              <div class="meta">${job.company} • Discovered on ${job.date_found}</div>
+            </div>
+          </div>
+        `).join('');
+      })
+      .catch(() => {
+        document.getElementById('job-list').innerHTML = '<p>Unable to load jobs.json. Run the scraper locally first.</p>';
+      });
+  </script>
+</body>
+</html>
